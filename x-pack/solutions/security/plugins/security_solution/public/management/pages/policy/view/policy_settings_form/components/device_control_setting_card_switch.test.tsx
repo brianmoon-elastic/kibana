@@ -45,17 +45,6 @@ const setDeviceControlMode = ({
 
   windowsDeviceControl.enabled = enabled;
   macDeviceControl.enabled = enabled;
-
-  if (enabled) {
-    windowsDeviceControl.usb_storage = DeviceControlAccessLevelEnum.deny_all;
-    macDeviceControl.usb_storage = DeviceControlAccessLevelEnum.deny_all;
-  } else {
-    windowsDeviceControl.usb_storage = DeviceControlAccessLevelEnum.audit;
-    macDeviceControl.usb_storage = DeviceControlAccessLevelEnum.audit;
-  }
-
-  policy.windows.popup.device_control = { enabled, message: '' };
-  policy.mac.popup.device_control = { enabled, message: '' };
 };
 
 describe('Policy form DeviceControlSettingCardSwitch component', () => {
@@ -77,7 +66,7 @@ describe('Policy form DeviceControlSettingCardSwitch component', () => {
       mode: 'edit',
       'data-test-subj': 'test',
       selected: true,
-      protectionLabel: 'Device Control',
+      protectionLabel: 'Device control',
       osList: ['windows', 'mac'],
     };
 
@@ -94,7 +83,7 @@ describe('Policy form DeviceControlSettingCardSwitch component', () => {
     const { getByTestId } = render();
 
     expect(getByTestId('test')).toHaveAttribute('aria-checked', 'true');
-    expect(getByTestId('test-label')).toHaveTextContent(exactMatchText('Device Control'));
+    expect(getByTestId('test-label')).toHaveTextContent(exactMatchText('Device control'));
   });
 
   it('should render expected output when disabled', () => {
@@ -102,7 +91,7 @@ describe('Policy form DeviceControlSettingCardSwitch component', () => {
     const { getByTestId } = render();
 
     expect(getByTestId('test')).toHaveAttribute('aria-checked', 'false');
-    expect(getByTestId('test-label')).toHaveTextContent(exactMatchText('Device Control'));
+    expect(getByTestId('test-label')).toHaveTextContent(exactMatchText('Device control'));
   });
 
   it('should be able to disable it', async () => {
@@ -149,7 +138,7 @@ describe('Policy form DeviceControlSettingCardSwitch component', () => {
       render();
 
       expect(renderResult.getByTestId('test-label')).toHaveTextContent(
-        exactMatchText('Device Control')
+        exactMatchText('Device control')
       );
       expect(renderResult.getByTestId('test').getAttribute('aria-checked')).toBe('true');
     });
@@ -159,7 +148,7 @@ describe('Policy form DeviceControlSettingCardSwitch component', () => {
       render();
 
       expect(renderResult.getByTestId('test-label')).toHaveTextContent(
-        exactMatchText('Device Control')
+        exactMatchText('Device control')
       );
       expect(renderResult.getByTestId('test').getAttribute('aria-checked')).toBe('false');
     });

@@ -130,22 +130,29 @@ export default function ({ getPageObjects, getService }: FtrProviderContext) {
         });
 
         it('should show the supported Endpoint version for user notification', async () => {
-          expect(await testSubjects.getVisibleText(cardTestSubj.notifySupportedVersion)).to.equal(
-            'Agent version ' +
-              PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION[
-                protection as keyof typeof PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION
-              ]
+          const description = await testSubjects.getVisibleText(
+            cardTestSubj.notifySupportedVersion
           );
+          expect(description).to.contain(
+            PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION[
+              protection as keyof typeof PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION
+            ]
+          );
+          expect(description.toLowerCase()).to.contain('agent version');
         });
 
-        it('should show the custom message text area when the Notify User checkbox is checked', async () => {
-          expect(await testSubjects.isChecked(cardTestSubj.notifyUserCheckbox)).to.be(true);
+        it('should show the custom message text area when the Notify user toggle is on', async () => {
+          expect(await testSubjects.isEuiSwitchChecked(cardTestSubj.notifyUserCheckbox)).to.be(
+            true
+          );
           await testSubjects.existOrFail(cardTestSubj.notifyCustomMessage);
         });
 
-        it('should not show the custom message text area when the Notify User checkbox is unchecked', async () => {
-          await pageObjects.endpointPageUtils.clickOnEuiCheckbox(cardTestSubj.notifyUserCheckbox);
-          expect(await testSubjects.isChecked(cardTestSubj.notifyUserCheckbox)).to.be(false);
+        it('should not show the custom message text area when the Notify user toggle is off', async () => {
+          await testSubjects.click(cardTestSubj.notifyUserCheckbox);
+          expect(await testSubjects.isEuiSwitchChecked(cardTestSubj.notifyUserCheckbox)).to.be(
+            false
+          );
           await testSubjects.missingOrFail(cardTestSubj.notifyCustomMessage);
         });
 

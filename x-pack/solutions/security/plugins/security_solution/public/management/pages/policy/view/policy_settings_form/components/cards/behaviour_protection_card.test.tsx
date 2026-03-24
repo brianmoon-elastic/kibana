@@ -25,6 +25,9 @@ jest.mock('../../../../../../../common/hooks/use_license');
 
 const useLicenseMock = _useLicense as jest.Mock;
 
+const BEHAVIOR_NOTIFY_DESCRIPTION =
+  'Enabling this will display a notification to the host user when malicious behavior is prevented or detected. The user notification can be customized once enabled. Supported on agent version 7.15+ and beyond.';
+
 describe('Policy Behaviour Protection Card', () => {
   const testSubj = getPolicySettingsFormTestSubjects('test').behaviour;
 
@@ -126,11 +129,9 @@ describe('Policy Behaviour Protection Card', () => {
               ...(config.reputationServices
                 ? ['Reputation serviceInfo', 'Reputation service']
                 : []),
-              'User notification',
-              'Agent version 7.15+',
-              ...(config.notifyUser
-                ? ['Notify user', 'Notification message', '—']
-                : ['Notify user']),
+              'Notify user',
+              BEHAVIOR_NOTIFY_DESCRIPTION,
+              ...(config.notifyUser ? ['Notification message', '—'] : []),
             ]
           : baseText
       ).join('');
@@ -146,7 +147,7 @@ describe('Policy Behaviour Protection Card', () => {
       expectIsViewOnly(getByTestId(testSubj.card));
       expect(getByTestId(testSubj.card)).toHaveTextContent(cardTextContent());
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('true');
     });
 
     it('should display correctly when overall card is enabled for cloud user', () => {
@@ -159,7 +160,7 @@ describe('Policy Behaviour Protection Card', () => {
         cardTextContent({ reputationServices: true })
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('true');
       expect(getByTestId(testSubj.reputationServiceCheckbox)).not.toHaveAttribute('checked');
     });
 
@@ -200,7 +201,7 @@ describe('Policy Behaviour Protection Card', () => {
       expectIsViewOnly(getByTestId(testSubj.card));
       expect(getByTestId(testSubj.card)).toHaveTextContent(cardTextContent({ notifyUser: false }));
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).not.toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('false');
     });
   });
 });

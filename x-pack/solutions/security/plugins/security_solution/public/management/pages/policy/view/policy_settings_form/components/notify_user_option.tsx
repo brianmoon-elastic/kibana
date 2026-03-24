@@ -9,28 +9,27 @@ import React, { useCallback, useMemo } from 'react';
 import { i18n } from '@kbn/i18n';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { cloneDeep } from 'lodash';
-import type { EuiTextAreaProps, EuiCheckboxProps } from '@elastic/eui';
+import type { EuiTextAreaProps, EuiSwitchProps } from '@elastic/eui';
 import {
   EuiSpacer,
   EuiFlexItem,
   EuiFlexGroup,
-  EuiCheckbox,
+  EuiHorizontalRule,
   EuiIconTip,
   EuiText,
   EuiTextArea,
+  EuiSwitch,
 } from '@elastic/eui';
 import { PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION } from '../protection_notice_supported_endpoint_version';
 import { useTestIdGenerator } from '../../../../../hooks/use_test_id_generator';
 import { getEmptyValue } from '../../../../../../common/components/empty_value';
-import { useLicense } from '../../../../../../common/hooks/use_license';
-import { SettingCardHeader } from './setting_card';
+import { useEffectivePlatinumPlusForPolicyForm } from '../hooks/endpoint_policy_dev_preview';
 import type { PolicyFormComponentCommonProps } from '../types';
 import type { ImmutableArray, UIPolicyConfig } from '../../../../../../../common/endpoint/types';
 import { ProtectionModes } from '../../../../../../../common/endpoint/types';
 import type { PolicyProtection, MacPolicyProtection, LinuxPolicyProtection } from '../../../types';
 import { useGetCustomNotificationUnavailableComponent } from '../hooks/use_get_custom_notification_unavailable_component';
 import {
-  NOTIFY_USER_SECTION_TITLE,
   NOTIFY_USER_CHECKBOX_LABEL,
   NOTIFICATION_MESSAGE_LABEL,
   CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL,
@@ -39,6 +38,13 @@ import {
 export interface NotifyUserOptionProps extends PolicyFormComponentCommonProps {
   protection: PolicyProtection;
   osList: ImmutableArray<Partial<keyof UIPolicyConfig>>;
+  /** When true (e.g. protection feature off), controls are non-interactive. */
+  formDisabled?: boolean;
+  /**
+   * When false, omits the spacer and horizontal rule above "Notify user" (use when the parent
+   * already rendered a divider after the preceding setting).
+   */
+  showTopSectionDivider?: boolean;
 }
 
 export const NotifyUserOption = React.memo(
@@ -48,18 +54,26 @@ export const NotifyUserOption = React.memo(
     mode,
     protection,
     osList,
+    formDisabled = false,
+    showTopSectionDivider = true,
     'data-test-subj': dataTestSubj,
   }: NotifyUserOptionProps) => {
-    const isPlatinumPlus = useLicense().isPlatinumPlus();
+    const isPlatinumPlus = useEffectivePlatinumPlusForPolicyForm();
     const getTestId = useTestIdGenerator(dataTestSubj);
     const CustomNotificationUpsellingComponent = useGetCustomNotificationUnavailableComponent();
 
     const isEditMode = mode === 'edit';
-    const selected = policy.windows[protection].mode;
-    const userNotificationSelected = policy.windows.popup[protection].enabled;
-    const userNotificationMessage = policy.windows.popup[protection].message;
+    const primaryOs = osList[0];
+    const selected = policy[primaryOs][protection].mode;
+    const userNotificationSelected = policy[primaryOs].popup[protection].enabled;
+    const userNotificationMessage = policy[primaryOs].popup[protection].message;
 
-    const handleUserNotificationCheckbox = useCallback<EuiCheckboxProps['onChange']>(
+    const supportedVersion =
+      PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION[
+        protection as keyof typeof PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION
+      ];
+
+    const handleUserNotificationSwitch = useCallback<NonNullable<EuiSwitchProps['onChange']>>(
       (event) => {
         const newPayload = cloneDeep(policy);
 
@@ -117,20 +131,17 @@ export const NotifyUserOption = React.memo(
       }
     }, []);
 
-    const tooltipBracketText = useCallback(
-      (protectionType: PolicyProtection) => {
-        if (protectionType === 'memory_protection' || protection === 'behavior_protection') {
-          return i18n.translate('xpack.securitySolution.endpoint.policyDetail.rule', {
-            defaultMessage: 'rule',
-          });
-        } else {
-          return i18n.translate('xpack.securitySolution.endpoint.policyDetail.filename', {
-            defaultMessage: 'filename',
-          });
-        }
-      },
-      [protection]
-    );
+    const tooltipBracketText = useCallback((protectionType: PolicyProtection) => {
+      if (protectionType === 'memory_protection' || protectionType === 'behavior_protection') {
+        return i18n.translate('xpack.securitySolution.endpoint.policyDetail.rule', {
+          defaultMessage: 'rule',
+        });
+      } else {
+        return i18n.translate('xpack.securitySolution.endpoint.policyDetail.filename', {
+          defaultMessage: 'filename',
+        });
+      }
+    }, []);
 
     const customNotificationComponent = useMemo(() => {
       if (!userNotificationSelected) {
@@ -159,8 +170,12 @@ export const NotifyUserOption = React.memo(
           <EuiSpacer size="m" />
           <EuiFlexGroup gutterSize="xs">
             <EuiFlexItem grow={false}>
-              <EuiText size="s" data-test-subj={getTestId('customMessageTitle')}>
-                <h4>{CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL}</h4>
+              <EuiText
+                size="s"
+                data-test-subj={getTestId('customMessageTitle')}
+                css={({ euiTheme }) => ({ fontWeight: euiTheme.font.weight.semiBold })}
+              >
+                {CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL}
               </EuiText>
             </EuiFlexItem>
             <EuiFlexItem grow={false}>
@@ -202,7 +217,7 @@ export const NotifyUserOption = React.memo(
             value={userNotificationMessage}
             onChange={handleCustomUserNotification}
             fullWidth={true}
-            disabled={!isEditMode}
+            disabled={!isEditMode || formDisabled}
             data-test-subj={getTestId('customMessage')}
           />
         </>
@@ -217,34 +232,64 @@ export const NotifyUserOption = React.memo(
       tooltipProtectionText,
       userNotificationMessage,
       userNotificationSelected,
+      formDisabled,
     ]);
 
     if (!isPlatinumPlus) {
       return null;
     }
 
+    const switchDisabled = !isEditMode || selected === ProtectionModes.off || formDisabled;
+
     return (
       <div data-test-subj={getTestId()}>
-        <EuiSpacer size="m" />
-        <SettingCardHeader data-test-subj={getTestId('title')}>
-          {NOTIFY_USER_SECTION_TITLE}
-        </SettingCardHeader>
+        {showTopSectionDivider ? (
+          <>
+            <EuiSpacer size="m" />
+            <EuiHorizontalRule margin="m" data-test-subj={getTestId('sectionDivider')} />
+          </>
+        ) : null}
 
-        <SupportedVersionForProtectionNotice
-          protection={protection}
-          data-test-subj={getTestId('supportedVersion')}
-        />
-
-        <EuiSpacer size="s" />
-
-        <EuiCheckbox
-          data-test-subj={getTestId('checkbox')}
-          id={`${protection}UserNotificationCheckbox}`}
-          onChange={handleUserNotificationCheckbox}
-          checked={userNotificationSelected}
-          disabled={!isEditMode || selected === ProtectionModes.off}
-          label={NOTIFY_USER_CHECKBOX_LABEL}
-        />
+        <EuiFlexGroup
+          gutterSize="m"
+          alignItems="flex-start"
+          justifyContent="spaceBetween"
+          responsive={false}
+        >
+          <EuiFlexItem grow={true}>
+            <EuiText
+              size="s"
+              css={({ euiTheme }) => ({ fontWeight: euiTheme.font.weight.semiBold })}
+            >
+              {NOTIFY_USER_CHECKBOX_LABEL}
+            </EuiText>
+            {supportedVersion ? (
+              <>
+                <EuiSpacer size="xs" />
+                <EuiText color="subdued" size="xs" data-test-subj={getTestId('supportedVersion')}>
+                  <FormattedMessage
+                    id="xpack.securitySolution.endpoint.policyDetailsConfig.notifyUserDescription"
+                    defaultMessage="Enabling this will display a notification to the host user when {protectionName} is prevented or detected. The user notification can be customized once enabled. Supported on agent version {version} and beyond."
+                    values={{
+                      protectionName: tooltipProtectionText(protection),
+                      version: supportedVersion,
+                    }}
+                  />
+                </EuiText>
+              </>
+            ) : null}
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <EuiSwitch
+              label={NOTIFY_USER_CHECKBOX_LABEL}
+              showLabel={false}
+              checked={userNotificationSelected}
+              onChange={handleUserNotificationSwitch}
+              disabled={switchDisabled}
+              data-test-subj={getTestId('checkbox')}
+            />
+          </EuiFlexItem>
+        </EuiFlexGroup>
 
         {customNotificationComponent}
       </div>
@@ -252,36 +297,3 @@ export const NotifyUserOption = React.memo(
   }
 );
 NotifyUserOption.displayName = 'NotifyUserOption';
-
-export const SupportedVersionForProtectionNotice = React.memo(
-  ({
-    protection,
-    'data-test-subj': dataTestSubj,
-  }: {
-    protection: string;
-    'data-test-subj'?: string;
-  }) => {
-    const version = useMemo(() => {
-      return PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION[
-        protection as keyof typeof PROTECTION_NOTICE_SUPPORTED_ENDPOINT_VERSION
-      ];
-    }, [protection]);
-
-    if (!version) {
-      return null;
-    }
-
-    return (
-      <EuiText color="subdued" size="xs" data-test-subj={dataTestSubj}>
-        <i>
-          <FormattedMessage
-            id="xpack.securitySolution.endpoint.policyDetails.supportedVersion"
-            defaultMessage="Agent version {version}"
-            values={{ version }}
-          />
-        </i>
-      </EuiText>
-    );
-  }
-);
-SupportedVersionForProtectionNotice.displayName = 'SupportedVersionForProtectionNotice';

@@ -22,6 +22,9 @@ jest.mock('../../../../../../../common/hooks/use_license');
 
 const useLicenseMock = _useLicense as jest.Mock;
 
+const MEMORY_NOTIFY_DESCRIPTION =
+  'Enabling this will display a notification to the host user when memory threat is prevented or detected. The user notification can be customized once enabled. Supported on agent version 7.15+ and beyond.';
+
 describe('Policy Memory Protections Card', () => {
   const testSubj = getPolicySettingsFormTestSubjects('test').memory;
 
@@ -92,22 +95,19 @@ describe('Policy Memory Protections Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Memory threat' +
-            'Operating system' +
-            'Windows, Mac, Linux ' +
-            'Memory threat protections' +
-            'Protection level' +
-            'Prevent' +
-            'User notification' +
-            'Agent version 7.15+' +
-            'Notify user' +
-            'Notification message' +
-            '—'
+          `Type` +
+            `Memory threat` +
+            `Operating system` +
+            `Windows, Mac, Linux ` +
+            `Memory threat protections` +
+            `Protection level` +
+            `Prevent` +
+            `Notify user${MEMORY_NOTIFY_DESCRIPTION}Notification message` +
+            `—`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('true');
     });
 
     it('should display correctly when overall card is disabled', () => {
@@ -137,20 +137,18 @@ describe('Policy Memory Protections Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Memory threat' +
-            'Operating system' +
-            'Windows, Mac, Linux ' +
-            'Memory threat protections' +
-            'Protection level' +
-            'Prevent' +
-            'User notification' +
-            'Agent version 7.15+' +
-            'Notify user'
+          `Type` +
+            `Memory threat` +
+            `Operating system` +
+            `Windows, Mac, Linux ` +
+            `Memory threat protections` +
+            `Protection level` +
+            `Prevent` +
+            `Notify user${MEMORY_NOTIFY_DESCRIPTION}`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).not.toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('false');
     });
   });
 });

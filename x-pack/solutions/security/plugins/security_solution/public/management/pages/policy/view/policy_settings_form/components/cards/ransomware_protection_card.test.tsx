@@ -25,6 +25,9 @@ jest.mock('../../../../../../../common/hooks/use_license');
 
 const useLicenseMock = _useLicense as jest.Mock;
 
+const RANSOMWARE_NOTIFY_DESCRIPTION =
+  'Enabling this will display a notification to the host user when ransomware is prevented or detected. The user notification can be customized once enabled. Supported on agent version 7.12+ and beyond.';
+
 describe('Policy Ransomware Protections Card', () => {
   const testSubj = getPolicySettingsFormTestSubjects('test').ransomware;
 
@@ -96,22 +99,19 @@ describe('Policy Ransomware Protections Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Ransomware' +
-            'Operating system' +
-            'Windows ' +
-            'Ransomware protections' +
-            'Protection level' +
-            'Prevent' +
-            'User notification' +
-            'Agent version 7.12+' +
-            'Notify user' +
-            'Notification message' +
-            '—'
+          `Type` +
+            `Ransomware` +
+            `Operating system` +
+            `Windows ` +
+            `Ransomware protections` +
+            `Protection level` +
+            `Prevent` +
+            `Notify user${RANSOMWARE_NOTIFY_DESCRIPTION}Notification message` +
+            `—`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('true');
     });
 
     it('should display correctly when overall card is disabled', () => {
@@ -137,20 +137,18 @@ describe('Policy Ransomware Protections Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Ransomware' +
-            'Operating system' +
-            'Windows ' +
-            'Ransomware protections' +
-            'Protection level' +
-            'Prevent' +
-            'User notification' +
-            'Agent version 7.12+' +
-            'Notify user'
+          `Type` +
+            `Ransomware` +
+            `Operating system` +
+            `Windows ` +
+            `Ransomware protections` +
+            `Protection level` +
+            `Prevent` +
+            `Notify user${RANSOMWARE_NOTIFY_DESCRIPTION}`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).not.toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('false');
     });
   });
 });

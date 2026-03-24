@@ -11,11 +11,6 @@ import { i18n } from '@kbn/i18n';
  * Shared translations for user notification components across different protection types
  */
 
-export const NOTIFY_USER_SECTION_TITLE = i18n.translate(
-  'xpack.securitySolution.endpoint.policyDetailsConfig.userNotification',
-  { defaultMessage: 'User notification' }
-);
-
 export const NOTIFY_USER_CHECKBOX_LABEL = i18n.translate(
   'xpack.securitySolution.endpoint.policyDetail.notifyUser',
   {

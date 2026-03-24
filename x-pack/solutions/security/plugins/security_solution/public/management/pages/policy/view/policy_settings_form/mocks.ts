@@ -26,8 +26,10 @@ export const getPolicySettingsFormTestSubjects = (
   const macEventsTestSubj = genTestSubj.withPrefix('macEvents');
   const linuxEventsTestSubj = genTestSubj.withPrefix('linuxEvents');
   const antivirusTestSubj = genTestSubj.withPrefix('antivirusRegistration');
+  const antivirusSectionTestSubj = genTestSubj.withPrefix('antivirusSection');
   const attackSurfaceTestSubj = genTestSubj.withPrefix('attackSurface');
   const deviceControlTestSubj = genTestSubj.withPrefix('deviceControl');
+  const eventCollectionTestSubj = genTestSubj.withPrefix('eventCollection');
 
   return {
     form: genTestSubj(),
@@ -35,6 +37,7 @@ export const getPolicySettingsFormTestSubjects = (
     malware: {
       card: malwareTestSubj(),
       enableDisableSwitch: malwareTestSubj('enableDisableSwitch'),
+      protectionLevelSelect: malwareTestSubj('protectionLevel-select'),
       protectionPreventRadio: malwareTestSubj('protectionLevel-preventRadio'),
       protectionDetectRadio: malwareTestSubj('protectionLevel-detectRadio'),
       notifyUserCheckbox: malwareTestSubj('notifyUser-checkbox'),
@@ -127,20 +130,25 @@ export const getPolicySettingsFormTestSubjects = (
       sessionDataCheckbox: linuxEventsTestSubj('session_data'),
       captureTerminalCheckbox: linuxEventsTestSubj('tty_io'),
     },
+    eventCollection: {
+      container: eventCollectionTestSubj(),
+    },
     antivirusRegistration: {
-      card: antivirusTestSubj(),
+      card: antivirusSectionTestSubj(),
       radioButtons: antivirusTestSubj('radioButtons'),
       disabledRadioButton: antivirusTestSubj(AntivirusRegistrationModes.disabled),
       enabledRadioButton: antivirusTestSubj(AntivirusRegistrationModes.enabled),
       syncRadioButton: antivirusTestSubj(AntivirusRegistrationModes.sync),
       osValueContainer: antivirusTestSubj('osValueContainer'),
+      registerSwitch: antivirusSectionTestSubj('registerSwitch'),
+      syncButton: antivirusSectionTestSubj('syncButton'),
     },
     deviceControl: {
       card: deviceControlTestSubj(),
       lockedCard: deviceControlTestSubj('locked'),
       lockedCardTitle: deviceControlTestSubj('locked-title'),
       enableDisableSwitch: deviceControlTestSubj('enableDisableSwitch'),
-      protectionAuditRadio: deviceControlTestSubj('protectionLevel-auditRadio'),
+      protectionLevelSelect: deviceControlTestSubj('protectionLevel-select'),
       notifyUserCheckbox: deviceControlTestSubj('notifyUser-checkbox'),
       osValuesContainer: deviceControlTestSubj('osValues'),
     },

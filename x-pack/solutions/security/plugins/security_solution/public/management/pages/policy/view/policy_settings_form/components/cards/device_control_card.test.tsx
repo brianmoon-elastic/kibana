@@ -22,6 +22,9 @@ jest.mock('../../../../../../../common/hooks/use_license');
 
 const useLicenseMock = _useLicense as jest.Mock;
 
+const DEVICE_CONTROL_NOTIFY_DESCRIPTION =
+  'Enabling this will display a notification to the host user when device access is blocked or restricted. The user notification can be customized once enabled.';
+
 describe('Policy Device Control Card', () => {
   const testSubj = getPolicySettingsFormTestSubjects('test').deviceControl;
 
@@ -47,7 +50,7 @@ describe('Policy Device Control Card', () => {
     const { getByTestId } = render();
 
     expect(getByTestId(testSubj.enableDisableSwitch));
-    expect(getByTestId(testSubj.protectionAuditRadio));
+    expect(getByTestId(testSubj.protectionLevelSelect));
     expect(getByTestId(testSubj.notifyUserCheckbox));
   });
 
@@ -92,21 +95,19 @@ describe('Policy Device Control Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Device Control' +
-            'Operating system' +
-            'Windows, Mac ' +
-            'Device Control' +
-            'USB storage access level' +
-            'Block all' +
-            'User notification' +
-            'Notify user' +
-            'Notification message' +
-            '—'
+          `Type` +
+            `Device control` +
+            `Operating system` +
+            `Windows, Mac ` +
+            `Device control` +
+            `USB storage access` +
+            `Block all` +
+            `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}Notification message` +
+            `—`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('true');
     });
 
     it('should display correctly when overall card is disabled', () => {
@@ -118,7 +119,7 @@ describe('Policy Device Control Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          ['Type', 'Device Control', 'Operating system', 'Windows, Mac ', 'Device Control'].join('')
+          ['Type', 'Device control', 'Operating system', 'Windows, Mac ', 'Device control'].join('')
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('false');
@@ -134,19 +135,18 @@ describe('Policy Device Control Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Device Control' +
-            'Operating system' +
-            'Windows, Mac ' +
-            'Device Control' +
-            'USB storage access level' +
-            'Block all' +
-            'User notification' +
-            'Notify user'
+          `Type` +
+            `Device control` +
+            `Operating system` +
+            `Windows, Mac ` +
+            `Device control` +
+            `USB storage access` +
+            `Block all` +
+            `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}`
         )
       );
       expect(getByTestId(testSubj.enableDisableSwitch).getAttribute('aria-checked')).toBe('true');
-      expect(getByTestId(testSubj.notifyUserCheckbox)).not.toHaveAttribute('checked');
+      expect(getByTestId(testSubj.notifyUserCheckbox).getAttribute('aria-checked')).toBe('false');
     });
 
     it('should display correctly with block protection level', () => {
@@ -163,23 +163,21 @@ describe('Policy Device Control Card', () => {
 
       expect(getByTestId(testSubj.card)).toHaveTextContent(
         exactMatchText(
-          'Type' +
-            'Device Control' +
-            'Operating system' +
-            'Windows, Mac ' +
-            'Device Control' +
-            'USB storage access level' +
-            'Block all' +
-            'User notification' +
-            'Notify user' +
-            'Notification message' +
-            '—'
+          `Type` +
+            `Device control` +
+            `Operating system` +
+            `Windows, Mac ` +
+            `Device control` +
+            `USB storage access` +
+            `Block all` +
+            `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}Notification message` +
+            `—`
         )
       );
     });
 
     it.each([
-      [DeviceControlAccessLevel.audit, 'Allow read, write and execute'],
+      [DeviceControlAccessLevel.audit, 'Read, write, and execute'],
       [DeviceControlAccessLevel.read_only, 'Read only'],
       [DeviceControlAccessLevel.no_execute, 'Read and write'],
     ])(
@@ -194,7 +192,7 @@ describe('Policy Device Control Card', () => {
 
         expect(getByTestId(testSubj.card)).toHaveTextContent(
           exactMatchText(
-            `TypeDevice ControlOperating systemWindows, Mac Device ControlUSB storage access level${accessLevelLabel}`
+            `TypeDevice controlOperating systemWindows, Mac Device controlUSB storage access${accessLevelLabel}`
           )
         );
         expect(renderResult.queryByTestId('test-deviceControl-notifyUser')).toBeNull();

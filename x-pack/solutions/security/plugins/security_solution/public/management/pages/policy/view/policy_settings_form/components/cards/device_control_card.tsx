@@ -27,7 +27,7 @@ export type DeviceControlProps = PolicyFormComponentCommonProps;
 export const DEVICE_CONTROL_CARD_TITLE = i18n.translate(
   'xpack.securitySolution.endpoint.policy.details.deviceControl',
   {
-    defaultMessage: 'Device Control',
+    defaultMessage: 'Device control',
   }
 );
 
@@ -52,7 +52,7 @@ export const DeviceControlCard = React.memo<DeviceControlProps>(
     const protectionLabel = i18n.translate(
       'xpack.securitySolution.endpoint.policy.protections.deviceControl',
       {
-        defaultMessage: 'Device Control',
+        defaultMessage: 'Device control',
       }
     );
 
@@ -69,7 +69,7 @@ export const DeviceControlCard = React.memo<DeviceControlProps>(
     return (
       <SettingCard
         type={i18n.translate('xpack.securitySolution.endpoint.policy.details.deviceControl', {
-          defaultMessage: 'Device Control',
+          defaultMessage: 'Device control',
         })}
         supportedOss={[OperatingSystem.WINDOWS, OperatingSystem.MAC]}
         dataTestSubj={getTestId()}

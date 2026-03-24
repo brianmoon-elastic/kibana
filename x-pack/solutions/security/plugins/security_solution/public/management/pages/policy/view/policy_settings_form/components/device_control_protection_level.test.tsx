@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { cloneDeep } from 'lodash';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, screen, waitForElementToBeRemoved, within } from '@testing-library/react';
 import type { AppContextTestRender } from '../../../../../../common/mock/endpoint';
 import { createAppRootMockRenderer } from '../../../../../../common/mock/endpoint';
 import { FleetPackagePolicyGenerator } from '../../../../../../../common/endpoint/data_generators/fleet_package_policy_generator';
@@ -21,12 +21,11 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
   let render: () => ReturnType<AppContextTestRender['render']>;
   let renderResult: ReturnType<typeof render>;
 
-  const clickAccessLevel = async (level: 'audit' | 'deny_all') => {
-    await userEvent.click(renderResult.getByTestId(`test-${level}Radio`).querySelector('label')!);
-  };
-
-  const isAccessLevelChecked = (level: 'audit' | 'deny_all'): boolean => {
-    return renderResult.getByTestId(`test-${level}Radio`)!.querySelector('input')!.checked ?? false;
+  const selectAccessLevel = async (optionTestId: string) => {
+    fireEvent.click(renderResult.getByTestId('test-select'));
+    const listbox = await screen.findByRole('listbox');
+    fireEvent.click(within(listbox).getByTestId(optionTestId));
+    await waitForElementToBeRemoved(listbox);
   };
 
   beforeEach(() => {
@@ -57,19 +56,15 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
     };
   });
 
-  it('should render expected options', () => {
+  it('should render expected super select control', () => {
     const { getByTestId } = render();
-    expect(getByTestId('test-no_executeRadio'));
-    expect(getByTestId('test-read_onlyRadio'));
-    expect(getByTestId('test-auditRadio'));
-    expect(getByTestId('test-deny_allRadio'));
+    expect(getByTestId('test-select'));
   });
 
   it('should allow audit mode to be selected', async () => {
     const expectedPolicyUpdate = cloneDeep(formProps.policy);
     expectedPolicyUpdate.windows.device_control!.usb_storage = DeviceControlAccessLevelEnum.audit;
     expectedPolicyUpdate.mac.device_control!.usb_storage = DeviceControlAccessLevelEnum.audit;
-    // Notifications should be disabled when switching away from deny_all
     if (expectedPolicyUpdate.windows.popup.device_control) {
       expectedPolicyUpdate.windows.popup.device_control.enabled = false;
     }
@@ -79,9 +74,7 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
 
     render();
 
-    expect(isAccessLevelChecked('deny_all')).toBe(true);
-
-    await clickAccessLevel('audit');
+    await selectAccessLevel('test-option-audit');
 
     expect(formProps.onChange).toHaveBeenCalledWith({
       isValid: true,
@@ -107,9 +100,7 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
 
     render();
 
-    expect(isAccessLevelChecked('deny_all')).toBe(true);
-
-    await clickAccessLevel('audit');
+    await selectAccessLevel('test-option-audit');
 
     expect(formProps.onChange).toHaveBeenCalledWith({
       isValid: true,
@@ -138,9 +129,7 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
 
     render();
 
-    expect(isAccessLevelChecked('audit')).toBe(true);
-
-    await clickAccessLevel('deny_all');
+    await selectAccessLevel('test-option-deny_all');
 
     expect(formProps.onChange).toHaveBeenCalledWith({
       isValid: true,
@@ -157,7 +146,7 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
       render();
 
       expectIsViewOnly(renderResult.getByTestId('test'));
-      expect(renderResult.getByTestId('test')).toHaveTextContent('Block all');
+      expect(renderResult.getByTestId('test-viewValue')).toHaveTextContent('Block all');
     });
 
     it('should display audit', () => {
@@ -165,16 +154,15 @@ describe('Policy form DeviceControlProtectionLevel component', () => {
       render();
 
       expectIsViewOnly(renderResult.getByTestId('test'));
-      expect(renderResult.getByTestId('test')).toHaveTextContent(
-        'USB storage access levelAllow read, write and execute'
+      expect(renderResult.getByTestId('test-viewValue')).toHaveTextContent(
+        'Read, write, and execute'
       );
     });
 
-    it('should not render radio buttons', () => {
+    it('should not render super select', () => {
       render();
 
-      expect(renderResult.queryByTestId('test-auditRadio')).toBeNull();
-      expect(renderResult.queryByTestId('test-deny_allRadio')).toBeNull();
+      expect(renderResult.queryByTestId('test-select')).toBeNull();
     });
   });
 });

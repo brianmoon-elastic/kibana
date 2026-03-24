@@ -103,11 +103,8 @@ describe('Endpoint Policy Settings Form', () => {
     ['malware', testSubj.malware.card],
     ['ransomware', testSubj.ransomware.card],
     ['memory', testSubj.memory.card],
-    ['behaviour', testSubj.behaviour.card],
     ['attack surface', testSubj.attackSurface.card],
-    ['windows events', testSubj.windowsEvents.card],
-    ['mac events', testSubj.macEvents.card],
-    ['linux events', testSubj.linuxEvents.card],
+    ['event collection', testSubj.eventCollection.container],
     ['antivirus registration', testSubj.antivirusRegistration.card],
     ['advanced settings', testSubj.advancedSection.container],
   ])('should include %s card', (_, testSubjSelector) => {
@@ -134,7 +131,6 @@ describe('Endpoint Policy Settings Form', () => {
       ['malware', testSubj.malware.card],
       ['ransomware', testSubj.ransomware.card],
       ['memory', testSubj.memory.card],
-      ['behaviour', testSubj.behaviour.card],
       ['attack surface', testSubj.attackSurface.card],
       ['antivirus registration', testSubj.antivirusRegistration.card],
     ])('should include %s card', (_, testSubjSelector) => {
@@ -150,14 +146,10 @@ describe('Endpoint Policy Settings Form', () => {
   });
 
   describe('when changing related settings', () => {
-    let clickOnRadio: (selector: string) => Promise<void>;
     let expectOnChangeToBeCalledWith: (updatedPolicy: PolicyConfig) => void;
 
     describe('related to antivirus registration', () => {
       beforeEach(() => {
-        clickOnRadio = (selector) =>
-          userEvent.click(renderResult.getByTestId(selector).querySelector('input')!);
-
         expectOnChangeToBeCalledWith = (updatedPolicy) =>
           expect(formProps.onChange).toBeCalledWith({
             isValid: true,
@@ -165,16 +157,31 @@ describe('Endpoint Policy Settings Form', () => {
           });
       });
 
+      const selectMalwareProtectionDetect = async () => {
+        await userEvent.click(renderResult.getByTestId(testSubj.malware.protectionLevelSelect));
+        await userEvent.click(await renderResult.findByRole('option', { name: /^Detect$/ }));
+      };
+
       describe('changing malware when antivirus registration is synced with malware', () => {
         it('should enable antivirus registration when malware is enabled', async () => {
           setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.sync, false);
-          setMalwareMode({ policy: formProps.policy, turnOff: true });
+          setMalwareMode({
+            policy: formProps.policy,
+            turnOff: true,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           render();
 
           await userEvent.click(renderResult.getByTestId(testSubj.malware.enableDisableSwitch));
 
           const expectedPolicy = cloneDeep(formProps.policy);
-          setMalwareMode({ policy: expectedPolicy });
+          setMalwareMode({
+            policy: expectedPolicy,
+            turnOff: false,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.sync, true);
           expectOnChangeToBeCalledWith(expectedPolicy);
         });
@@ -186,7 +193,12 @@ describe('Endpoint Policy Settings Form', () => {
           await userEvent.click(renderResult.getByTestId(testSubj.malware.enableDisableSwitch));
 
           const expectedPolicy = cloneDeep(formProps.policy);
-          setMalwareMode({ policy: expectedPolicy, turnOff: true });
+          setMalwareMode({
+            policy: expectedPolicy,
+            turnOff: true,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.sync, false);
           expectOnChangeToBeCalledWith(expectedPolicy);
         });
@@ -196,7 +208,7 @@ describe('Endpoint Policy Settings Form', () => {
           setMalwareMode({ policy: formProps.policy });
           render();
 
-          await clickOnRadio(testSubj.malware.protectionDetectRadio);
+          await selectMalwareProtectionDetect();
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setMalwareModeToDetect(expectedPolicy);
@@ -208,13 +220,23 @@ describe('Endpoint Policy Settings Form', () => {
       describe('changing malware when antivirus registration is NOT synced with malware', () => {
         it('should not change antivirus registration when malware is enabled', async () => {
           setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.disabled, false);
-          setMalwareMode({ policy: formProps.policy, turnOff: true });
+          setMalwareMode({
+            policy: formProps.policy,
+            turnOff: true,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           render();
 
           await userEvent.click(renderResult.getByTestId(testSubj.malware.enableDisableSwitch));
 
           const expectedPolicy = cloneDeep(formProps.policy);
-          setMalwareMode({ policy: expectedPolicy });
+          setMalwareMode({
+            policy: expectedPolicy,
+            turnOff: false,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           expectOnChangeToBeCalledWith(expectedPolicy);
         });
 
@@ -225,7 +247,12 @@ describe('Endpoint Policy Settings Form', () => {
           await userEvent.click(renderResult.getByTestId(testSubj.malware.enableDisableSwitch));
 
           const expectedPolicy = cloneDeep(formProps.policy);
-          setMalwareMode({ policy: expectedPolicy, turnOff: true });
+          setMalwareMode({
+            policy: expectedPolicy,
+            turnOff: true,
+            includePopup: false,
+            includeSubfeatures: false,
+          });
           expectOnChangeToBeCalledWith(expectedPolicy);
         });
 
@@ -234,7 +261,7 @@ describe('Endpoint Policy Settings Form', () => {
           setMalwareMode({ policy: formProps.policy });
           render();
 
-          await clickOnRadio(testSubj.malware.protectionDetectRadio);
+          await selectMalwareProtectionDetect();
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setMalwareModeToDetect(expectedPolicy);
@@ -247,7 +274,9 @@ describe('Endpoint Policy Settings Form', () => {
           setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.disabled, false);
           render();
 
-          await clickOnRadio(testSubj.antivirusRegistration.syncRadioButton);
+          await userEvent.click(
+            renderResult.getByTestId(testSubj.antivirusRegistration.syncButton)
+          );
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.sync, true);
@@ -258,7 +287,9 @@ describe('Endpoint Policy Settings Form', () => {
           setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.sync, true);
           render();
 
-          await clickOnRadio(testSubj.antivirusRegistration.disabledRadioButton);
+          await userEvent.click(
+            renderResult.getByTestId(testSubj.antivirusRegistration.registerSwitch)
+          );
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.disabled, false);
@@ -275,7 +306,9 @@ describe('Endpoint Policy Settings Form', () => {
           setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.enabled, true);
           render();
 
-          await clickOnRadio(testSubj.antivirusRegistration.syncRadioButton);
+          await userEvent.click(
+            renderResult.getByTestId(testSubj.antivirusRegistration.syncButton)
+          );
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.sync, false);
@@ -283,10 +316,12 @@ describe('Endpoint Policy Settings Form', () => {
         });
 
         it('should enable antivirus registration when set to enabled', async () => {
-          setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.sync, false);
+          setAntivirusRegistration(formProps.policy, AntivirusRegistrationModes.disabled, false);
           render();
 
-          await clickOnRadio(testSubj.antivirusRegistration.enabledRadioButton);
+          await userEvent.click(
+            renderResult.getByTestId(testSubj.antivirusRegistration.registerSwitch)
+          );
 
           const expectedPolicy = cloneDeep(formProps.policy);
           setAntivirusRegistration(expectedPolicy, AntivirusRegistrationModes.enabled, true);

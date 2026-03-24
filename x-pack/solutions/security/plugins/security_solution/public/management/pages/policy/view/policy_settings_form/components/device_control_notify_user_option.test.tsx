@@ -17,7 +17,6 @@ import { licenseService as licenseServiceMocked } from '../../../../../../common
 import type { DeviceControlAccessLevel } from '../../../../../../../common/endpoint/types';
 import { expectIsViewOnly, exactMatchText } from '../mocks';
 import {
-  NOTIFY_USER_SECTION_TITLE,
   NOTIFY_USER_CHECKBOX_LABEL,
   CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL,
 } from './shared_translations';
@@ -33,9 +32,12 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
   let render: () => ReturnType<AppContextTestRender['render']>;
   let renderResult: ReturnType<typeof render>;
 
-  const isChecked = (selector: string): boolean => {
-    return (renderResult.getByTestId(selector) as HTMLInputElement).checked;
+  const isNotifySwitchOn = (): boolean => {
+    return renderResult.getByTestId('test-checkbox').getAttribute('aria-checked') === 'true';
   };
+
+  const DEVICE_CONTROL_NOTIFY_DESCRIPTION =
+    'Enabling this will display a notification to the host user when device access is blocked or restricted. The user notification can be customized once enabled.';
 
   beforeEach(() => {
     const mockedContext = createAppRootMockRenderer();
@@ -64,8 +66,8 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
   it('should render with expected content', () => {
     const { getByTestId } = render();
 
-    expect(getByTestId('test')).toHaveTextContent(NOTIFY_USER_SECTION_TITLE);
-    expect(isChecked('test-checkbox')).toBe(true);
+    expect(getByTestId('test-sectionDivider')).toBeInTheDocument();
+    expect(isNotifySwitchOn()).toBe(true);
     expect(renderResult.getByLabelText(NOTIFY_USER_CHECKBOX_LABEL));
     expect(getByTestId('test-customMessageTitle')).toHaveTextContent(
       exactMatchText(CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL)
@@ -77,11 +79,11 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
     formProps.policy.windows.popup.device_control!.enabled = false;
     render();
 
-    expect(isChecked('test-checkbox')).toBe(false);
+    expect(isNotifySwitchOn()).toBe(false);
     expect(renderResult.queryByTestId('test-customMessage')).toBeNull();
   });
 
-  it('should render checkbox disabled if device control is OFF', () => {
+  it('should render switch disabled if device control is OFF', () => {
     formProps.policy.windows.device_control!.enabled = false;
     formProps.policy.mac.device_control!.enabled = false;
     render();
@@ -142,7 +144,7 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
 
   describe('and access level is not deny_all', () => {
     it.each<[DeviceControlAccessLevel, string]>([
-      ['audit', 'Allow read, write and execute'],
+      ['audit', 'Read, write, and execute'],
       ['read_only', 'Read only'],
       ['no_execute', 'Read and write'],
     ])('should NOT render when access level is %s (%s)', (accessLevel) => {
@@ -190,7 +192,7 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
     it('should render with expected output when checked', () => {
       render();
       expect(renderResult.getByTestId('test')).toHaveTextContent(
-        'User notificationNotify userNotification messagehello world'
+        `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}Notification messagehello world`
       );
     });
 
@@ -198,14 +200,16 @@ describe('Policy form DeviceControlNotifyUserOption component', () => {
       formProps.policy.windows.popup.device_control!.message = '';
       render();
       expect(renderResult.getByTestId('test')).toHaveTextContent(
-        'User notificationNotify userNotification message—'
+        `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}Notification message—`
       );
     });
 
     it('should render with expected output when un-checked', () => {
       formProps.policy.windows.popup.device_control!.enabled = false;
       render();
-      expect(renderResult.getByTestId('test')).toHaveTextContent('User notificationNotify user');
+      expect(renderResult.getByTestId('test')).toHaveTextContent(
+        `Notify user${DEVICE_CONTROL_NOTIFY_DESCRIPTION}`
+      );
     });
   });
 });

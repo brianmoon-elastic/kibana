@@ -64,15 +64,27 @@ describe.skip('Policy Details', { tags: ['@ess', '@serverless'] }, () => {
 
       // Default: Prevent + Notify user enabled
       cy.getByTestSubj(malwareTestSubj.protectionPreventRadio).find('input').should('be.checked');
-      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should('be.checked');
+      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'true'
+      );
 
       // Changing to Detect -> Notify user disabled
       cy.getByTestSubj(malwareTestSubj.protectionDetectRadio).find('label').click();
-      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should('not.be.checked');
+      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'false'
+      );
 
       // Changing back to Prevent -> Notify user enabled
       cy.getByTestSubj(malwareTestSubj.protectionPreventRadio).find('label').click();
-      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should('be.checked');
+      cy.getByTestSubj(malwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'true'
+      );
     });
 
     it('disabling protection should disable notification in yaml for every OS', () => {
@@ -151,15 +163,27 @@ describe.skip('Policy Details', { tags: ['@ess', '@serverless'] }, () => {
       cy.getByTestSubj(ransomwareTestSubj.protectionPreventRadio)
         .find('input')
         .should('be.checked');
-      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should('be.checked');
+      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'true'
+      );
 
       // Changing to Detect -> Notify user disabled
       cy.getByTestSubj(ransomwareTestSubj.protectionDetectRadio).find('label').click();
-      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should('not.be.checked');
+      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'false'
+      );
 
       // Changing back to Prevent -> Notify user enabled
       cy.getByTestSubj(ransomwareTestSubj.protectionPreventRadio).find('label').click();
-      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should('be.checked');
+      cy.getByTestSubj(ransomwareTestSubj.notifyUserCheckbox).should(
+        'have.attr',
+        'aria-checked',
+        'true'
+      );
     });
   });
 

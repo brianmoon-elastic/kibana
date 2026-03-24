@@ -73,6 +73,7 @@ describe('Policy form ProtectionSettingCardSwitch component', () => {
     setMalwareMode({
       policy: expectedUpdatedPolicy,
       turnOff: true,
+      includePopup: false,
       includeSubfeatures: false,
     });
     render();
@@ -94,6 +95,7 @@ describe('Policy form ProtectionSettingCardSwitch component', () => {
     setMalwareMode({
       policy: expectedUpdatedPolicy,
       turnOff: false,
+      includePopup: false,
       includeSubfeatures: false,
     });
     render();
@@ -116,6 +118,7 @@ describe('Policy form ProtectionSettingCardSwitch component', () => {
     setMalwareMode({
       policy: expectedPolicyDataBeforeAdditionalCallback,
       turnOff: true,
+      includePopup: false,
       includeSubfeatures: false,
     });
 

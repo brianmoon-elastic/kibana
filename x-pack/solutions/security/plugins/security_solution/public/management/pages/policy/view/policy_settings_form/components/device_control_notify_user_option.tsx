@@ -8,39 +8,46 @@
 import React, { useCallback, useMemo } from 'react';
 import { FormattedMessage } from '@kbn/i18n-react';
 import { cloneDeep } from 'lodash';
-import type { EuiCheckboxProps, EuiTextAreaProps } from '@elastic/eui';
+import type { EuiTextAreaProps, EuiSwitchProps } from '@elastic/eui';
 import {
-  EuiCheckbox,
   EuiFlexGroup,
   EuiFlexItem,
+  EuiHorizontalRule,
   EuiIconTip,
   EuiSpacer,
+  EuiSwitch,
   EuiText,
   EuiTextArea,
-  EuiTitle,
 } from '@elastic/eui';
 import { useTestIdGenerator } from '../../../../../hooks/use_test_id_generator';
 import { getEmptyValue } from '../../../../../../common/components/empty_value';
 import { useLicense } from '../../../../../../common/hooks/use_license';
-import { SettingCardHeader } from './setting_card';
 import type { PolicyFormComponentCommonProps } from '../types';
+import type { ImmutableArray } from '../../../../../../../common/endpoint/types';
 import { DeviceControlAccessLevel as DeviceControlAccessLevelEnum } from '../../../../../../../common/endpoint/types';
+import type { DeviceControlOSes } from '../../../types';
 import { DefaultPolicyDeviceNotificationMessage } from '../../../../../../../common/endpoint/models/policy_config';
 import { useGetCustomNotificationUnavailableComponent } from '../hooks/use_get_custom_notification_unavailable_component';
 import {
-  NOTIFY_USER_SECTION_TITLE,
   NOTIFY_USER_CHECKBOX_LABEL,
   NOTIFICATION_MESSAGE_LABEL,
   CUSTOMIZE_NOTIFICATION_MESSAGE_LABEL,
 } from './shared_translations';
 
-export type DeviceControlNotifyUserOptionProps = PolicyFormComponentCommonProps;
+const DEFAULT_DEVICE_CONTROL_OS_LIST: ImmutableArray<DeviceControlOSes> = ['windows', 'mac'];
+
+export type DeviceControlNotifyUserOptionProps = PolicyFormComponentCommonProps & {
+  osList?: ImmutableArray<DeviceControlOSes>;
+  formDisabled?: boolean;
+};
 
 export const DeviceControlNotifyUserOption = React.memo(
   ({
     policy,
     onChange,
     mode,
+    osList = DEFAULT_DEVICE_CONTROL_OS_LIST,
+    formDisabled = false,
     'data-test-subj': dataTestSubj,
   }: DeviceControlNotifyUserOptionProps) => {
     const isEnterprise = useLicense().isEnterprise();
@@ -49,58 +56,46 @@ export const DeviceControlNotifyUserOption = React.memo(
 
     const isEditMode = mode === 'edit';
 
-    const isDeviceControlEnabled =
-      policy.windows.device_control?.enabled || policy.mac.device_control?.enabled || false;
+    const primaryOs = osList[0];
 
-    const currentAccessLevel =
-      policy.windows.device_control?.usb_storage || policy.mac.device_control?.usb_storage;
+    const isDeviceControlEnabled = osList.some((os) => policy[os].device_control?.enabled);
 
-    const userNotificationSelected = policy.windows.popup.device_control?.enabled || false;
-    const userNotificationMessage = policy.windows.popup.device_control?.message || '';
+    const currentAccessLevel = policy[primaryOs].device_control?.usb_storage;
 
-    const handleUserNotificationCheckbox = useCallback<EuiCheckboxProps['onChange']>(
+    const userNotificationSelected = policy[primaryOs].popup.device_control?.enabled || false;
+    const userNotificationMessage = policy[primaryOs].popup.device_control?.message || '';
+
+    const handleUserNotificationSwitch = useCallback<NonNullable<EuiSwitchProps['onChange']>>(
       (event) => {
         const newPayload = cloneDeep(policy);
 
-        // Update Windows popup device control
-        newPayload.windows.popup.device_control = newPayload.windows.popup.device_control || {
-          enabled: event.target.checked,
-          message: DefaultPolicyDeviceNotificationMessage,
-        };
-        newPayload.windows.popup.device_control.enabled = event.target.checked;
-
-        // Update Mac popup device control
-        newPayload.mac.popup.device_control = newPayload.mac.popup.device_control || {
-          enabled: event.target.checked,
-          message: DefaultPolicyDeviceNotificationMessage,
-        };
-        newPayload.mac.popup.device_control.enabled = event.target.checked;
+        for (const os of osList) {
+          const prev = newPayload[os].popup.device_control;
+          newPayload[os].popup.device_control = {
+            enabled: event.target.checked,
+            message: prev?.message ?? DefaultPolicyDeviceNotificationMessage,
+          };
+        }
 
         onChange({ isValid: true, updatedPolicy: newPayload });
       },
-      [policy, onChange]
+      [osList, policy, onChange]
     );
 
     const handleCustomUserNotification = useCallback<NonNullable<EuiTextAreaProps['onChange']>>(
       (event) => {
         const newPayload = cloneDeep(policy);
-        // Update Windows popup device control message
-        newPayload.windows.popup.device_control = newPayload.windows.popup.device_control || {
-          enabled: false,
-          message: event.target.value,
-        };
-        newPayload.windows.popup.device_control.message = event.target.value;
-
-        // Update Mac popup device control message
-        newPayload.mac.popup.device_control = newPayload.mac.popup.device_control || {
-          enabled: false,
-          message: event.target.value,
-        };
-        newPayload.mac.popup.device_control.message = event.target.value;
+        for (const os of osList) {
+          const prev = newPayload[os].popup.device_control;
+          newPayload[os].popup.device_control = {
+            enabled: prev?.enabled ?? false,
+            message: event.target.value,
+          };
+        }
 
         onChange({ isValid: true, updatedPolicy: newPayload });
       },
-      [policy, onChange]
+      [osList, policy, onChange]
     );
 
     const customNotificationComponent = useMemo(() => {
@@ -160,7 +155,7 @@ export const DeviceControlNotifyUserOption = React.memo(
             value={userNotificationMessage}
             onChange={handleCustomUserNotification}
             fullWidth={true}
-            disabled={!isEditMode}
+            disabled={!isEditMode || formDisabled}
             data-test-subj={getTestId('customMessage')}
           />
         </>
@@ -172,6 +167,7 @@ export const DeviceControlNotifyUserOption = React.memo(
       isEditMode,
       userNotificationMessage,
       userNotificationSelected,
+      formDisabled,
     ]);
 
     if (!isEnterprise) {
@@ -182,25 +178,45 @@ export const DeviceControlNotifyUserOption = React.memo(
       return null;
     }
 
+    const switchDisabled = !isEnterprise || !isDeviceControlEnabled || !isEditMode || formDisabled;
+
     return (
       <div data-test-subj={getTestId()}>
         <EuiSpacer size="m" />
-        <SettingCardHeader>
-          <EuiTitle size="xxs">
-            <h5>{NOTIFY_USER_SECTION_TITLE}</h5>
-          </EuiTitle>
-        </SettingCardHeader>
+        <EuiHorizontalRule margin="m" data-test-subj={getTestId('sectionDivider')} />
 
-        <EuiSpacer size="s" />
-
-        <EuiCheckbox
-          id={'DeviceControlNotifyUserOptionCheckbox'}
-          data-test-subj={getTestId('checkbox')}
-          label={NOTIFY_USER_CHECKBOX_LABEL}
-          checked={userNotificationSelected}
-          disabled={!isEnterprise || !isDeviceControlEnabled || !isEditMode}
-          onChange={handleUserNotificationCheckbox}
-        />
+        <EuiFlexGroup
+          gutterSize="m"
+          alignItems="flex-start"
+          justifyContent="spaceBetween"
+          responsive={false}
+        >
+          <EuiFlexItem grow={true}>
+            <EuiText
+              size="s"
+              css={({ euiTheme }) => ({ fontWeight: euiTheme.font.weight.semiBold })}
+            >
+              {NOTIFY_USER_CHECKBOX_LABEL}
+            </EuiText>
+            <EuiSpacer size="xs" />
+            <EuiText color="subdued" size="xs">
+              <FormattedMessage
+                id="xpack.securitySolution.endpoint.policyDetailsConfig.deviceControl.notifyUserDescription"
+                defaultMessage="Enabling this will display a notification to the host user when device access is blocked or restricted. The user notification can be customized once enabled."
+              />
+            </EuiText>
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <EuiSwitch
+              label={NOTIFY_USER_CHECKBOX_LABEL}
+              showLabel={false}
+              checked={userNotificationSelected}
+              onChange={handleUserNotificationSwitch}
+              disabled={switchDisabled}
+              data-test-subj={getTestId('checkbox')}
+            />
+          </EuiFlexItem>
+        </EuiFlexGroup>
 
         {customNotificationComponent}
       </div>

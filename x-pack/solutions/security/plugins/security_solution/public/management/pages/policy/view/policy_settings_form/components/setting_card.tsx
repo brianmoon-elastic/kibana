@@ -37,7 +37,11 @@ const TITLES = {
 
 export const SettingCardHeader = memo<{ children: React.ReactNode; 'data-test-subj'?: string }>(
   ({ children, 'data-test-subj': dataTestSubj }) => (
-    <EuiTitle size="xxs" data-test-subj={dataTestSubj}>
+    <EuiTitle
+      size="xxs"
+      data-test-subj={dataTestSubj}
+      css={({ euiTheme }) => ({ fontWeight: euiTheme.font.weight.semiBold })}
+    >
       <h5>{children}</h5>
     </EuiTitle>
   )

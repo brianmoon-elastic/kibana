@@ -5,13 +5,12 @@
  * 2.0.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useContext } from 'react';
 import type { EuiSwitchProps } from '@elastic/eui';
 import { EuiSwitch } from '@elastic/eui';
 import { cloneDeep } from 'lodash';
 import { useTestIdGenerator } from '../../../../../hooks/use_test_id_generator';
 import type { PolicyFormComponentCommonProps } from '../types';
-import { useLicense } from '../../../../../../common/hooks/use_license';
 import type {
   ImmutableArray,
   PolicyConfig,
@@ -19,11 +18,43 @@ import type {
 } from '../../../../../../../common/endpoint/types';
 import { ProtectionModes } from '../../../../../../../common/endpoint/types';
 import type { LinuxPolicyProtection, MacPolicyProtection, PolicyProtection } from '../../../types';
+import { PreservedProtectionModesContext } from './preserved_protection_modes_context';
+
+const readProtectionMode = (
+  policyConfig: PolicyConfig,
+  os: Partial<keyof UIPolicyConfig>,
+  protection: PolicyProtection
+): ProtectionModes => {
+  if (os === 'windows') {
+    return policyConfig[os][protection].mode;
+  }
+  if (os === 'mac') {
+    return policyConfig[os][protection as MacPolicyProtection].mode;
+  }
+  return policyConfig[os][protection as LinuxPolicyProtection].mode;
+};
+
+const writeProtectionMode = (
+  policyConfig: PolicyConfig,
+  os: Partial<keyof UIPolicyConfig>,
+  protection: PolicyProtection,
+  nextMode: ProtectionModes
+): void => {
+  if (os === 'windows') {
+    policyConfig[os][protection].mode = nextMode;
+  } else if (os === 'mac') {
+    policyConfig[os][protection as MacPolicyProtection].mode = nextMode;
+  } else if (os === 'linux') {
+    policyConfig[os][protection as LinuxPolicyProtection].mode = nextMode;
+  }
+};
 
 export interface ProtectionSettingCardSwitchProps extends PolicyFormComponentCommonProps {
   protection: PolicyProtection;
   selected: boolean;
   protectionLabel?: string;
+  /** When false, only the switch is shown (label is still provided for accessibility). Use beside the card title. */
+  showVisibleLabel?: boolean;
   osList: ImmutableArray<Partial<keyof UIPolicyConfig>>;
   additionalOnSwitchChange?: ({
     value,
@@ -40,6 +71,7 @@ export const ProtectionSettingCardSwitch = React.memo(
   ({
     protection,
     protectionLabel,
+    showVisibleLabel = true,
     osList,
     additionalOnSwitchChange,
     onChange,
@@ -49,64 +81,29 @@ export const ProtectionSettingCardSwitch = React.memo(
     'data-test-subj': dataTestSubj,
   }: ProtectionSettingCardSwitchProps) => {
     const getTestId = useTestIdGenerator(dataTestSubj);
-    const isPlatinumPlus = useLicense().isPlatinumPlus();
     const isEditMode = mode === 'edit';
+    const preservedModesRef = useContext(PreservedProtectionModesContext);
 
     const handleSwitchChange = useCallback<EuiSwitchProps['onChange']>(
       (event) => {
         const newPayload = cloneDeep(policy);
 
-        if (event.target.checked === false) {
+        if (!event.target.checked) {
           for (const os of osList) {
-            if (os === 'windows') {
-              newPayload[os][protection].mode = ProtectionModes.off;
-            } else if (os === 'mac') {
-              newPayload[os][protection as MacPolicyProtection].mode = ProtectionModes.off;
-            } else if (os === 'linux') {
-              newPayload[os][protection as LinuxPolicyProtection].mode = ProtectionModes.off;
+            const currentMode = readProtectionMode(newPayload, os, protection);
+            if (preservedModesRef?.current && currentMode !== ProtectionModes.off) {
+              preservedModesRef.current[os as keyof UIPolicyConfig] = currentMode;
             }
-            if (isPlatinumPlus) {
-              if (os === 'windows') {
-                newPayload[os].popup[protection].enabled = event.target.checked;
-              } else if (os === 'mac') {
-                newPayload[os].popup[protection as MacPolicyProtection].enabled =
-                  event.target.checked;
-              } else if (os === 'linux') {
-                newPayload[os].popup[protection as LinuxPolicyProtection].enabled =
-                  event.target.checked;
-              }
-              if (protection === 'behavior_protection') {
-                newPayload.windows.behavior_protection.reputation_service = false;
-                newPayload.mac.behavior_protection.reputation_service = false;
-                newPayload.linux.behavior_protection.reputation_service = false;
-              }
-            }
+            writeProtectionMode(newPayload, os, protection, ProtectionModes.off);
           }
         } else {
           for (const os of osList) {
-            if (os === 'windows') {
-              newPayload[os][protection].mode = ProtectionModes.prevent;
-            } else if (os === 'mac') {
-              newPayload[os][protection as MacPolicyProtection].mode = ProtectionModes.prevent;
-            } else if (os === 'linux') {
-              newPayload[os][protection as LinuxPolicyProtection].mode = ProtectionModes.prevent;
+            const restored =
+              preservedModesRef?.current?.[os as keyof UIPolicyConfig] ?? ProtectionModes.prevent;
+            if (preservedModesRef?.current) {
+              delete preservedModesRef.current[os as keyof UIPolicyConfig];
             }
-            if (isPlatinumPlus) {
-              if (protection === 'behavior_protection') {
-                newPayload.windows.behavior_protection.reputation_service = true;
-                newPayload.mac.behavior_protection.reputation_service = true;
-                newPayload.linux.behavior_protection.reputation_service = true;
-              }
-              if (os === 'windows') {
-                newPayload[os].popup[protection].enabled = event.target.checked;
-              } else if (os === 'mac') {
-                newPayload[os].popup[protection as MacPolicyProtection].enabled =
-                  event.target.checked;
-              } else if (os === 'linux') {
-                newPayload[os].popup[protection as LinuxPolicyProtection].enabled =
-                  event.target.checked;
-              }
-            }
+            writeProtectionMode(newPayload, os, protection, restored);
           }
         }
 
@@ -121,13 +118,14 @@ export const ProtectionSettingCardSwitch = React.memo(
             : newPayload,
         });
       },
-      [policy, onChange, additionalOnSwitchChange, osList, isPlatinumPlus, protection]
+      [policy, onChange, additionalOnSwitchChange, osList, protection, preservedModesRef]
     );
 
     return (
       <EuiSwitch
-        label={protectionLabel}
-        labelProps={{ 'data-test-subj': getTestId('label') }}
+        label={protectionLabel ?? ''}
+        showLabel={showVisibleLabel}
+        {...(showVisibleLabel ? { labelProps: { 'data-test-subj': getTestId('label') } } : {})}
         checked={selected}
         disabled={!isEditMode}
         onChange={handleSwitchChange}

@@ -9,6 +9,7 @@ import React, { memo, useCallback, useState } from 'react';
 import { FormattedMessage } from '@kbn/i18n-react';
 import type { EuiFieldTextProps } from '@elastic/eui';
 import {
+  EuiButtonEmpty,
   EuiCallOut,
   EuiFieldText,
   EuiFlexGroup,
@@ -18,12 +19,11 @@ import {
   EuiPanel,
   EuiSpacer,
   EuiText,
-  EuiButtonEmpty,
 } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
 import { cloneDeep } from 'lodash';
 import { getEmptyValue } from '../../../../../../common/components/empty_value';
-import { useLicense } from '../../../../../../common/hooks/use_license';
+import { useEffectivePlatinumPlusForPolicyForm } from '../hooks/endpoint_policy_dev_preview';
 import { useTestIdGenerator } from '../../../../../hooks/use_test_id_generator';
 import type { PolicyFormComponentCommonProps } from '../types';
 import { AdvancedPolicySchema } from '../../../models/advanced_policy_schema';
@@ -113,7 +113,7 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
   ({ policy, mode, onChange, 'data-test-subj': dataTestSubj }) => {
     const getTestId = useTestIdGenerator(dataTestSubj);
     const [showAdvancedPolicy, setShowAdvancedPolicy] = useState<boolean>(false);
-    const isPlatinumPlus = useLicense().isPlatinumPlus();
+    const isPlatinumPlus = useEffectivePlatinumPlusForPolicyForm();
 
     const isEditMode = mode === 'edit';
 
@@ -137,10 +137,31 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
     );
 
     return (
-      <div data-test-subj={getTestId()}>
+      <div
+        data-test-subj={getTestId()}
+        css={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
+      >
         <EuiButtonEmpty
           data-test-subj={getTestId('showButton')}
           onClick={handleAdvancedSettingsButtonClick}
+          fullWidth
+          flush="both"
+          size="m"
+          iconType={showAdvancedPolicy ? 'arrowUp' : 'arrowDown'}
+          iconSide="right"
+          css={({ euiTheme }) => ({
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            maxWidth: '100%',
+            minHeight: '40px',
+            boxSizing: 'border-box',
+            borderRadius: 0,
+            '&:focus': {
+              borderRadius: euiTheme.border.radius.small,
+            },
+          })}
         >
           <FormattedMessage
             id="xpack.securitySolution.endpoint.policy.advanced.showHideButtonLabel"
