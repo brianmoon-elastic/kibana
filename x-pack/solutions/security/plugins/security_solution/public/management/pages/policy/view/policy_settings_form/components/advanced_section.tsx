@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { css } from '@emotion/react';
 import { FormattedMessage } from '@kbn/i18n-react';
 import type { EuiFieldTextProps } from '@elastic/eui';
@@ -24,8 +24,10 @@ import {
   EuiSpacer,
   EuiText,
   useEuiBackgroundColorCSS,
+  useEuiTheme,
 } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
+import { useDebounceFn } from '@kbn/react-hooks';
 import { cloneDeep } from 'lodash';
 import { getEmptyValue } from '../../../../../../common/components/empty_value';
 import { useLicense } from '../../../../../../common/hooks/use_license';
@@ -159,6 +161,8 @@ const EMPTY_STATE_MESSAGE = i18n.translate(
   { defaultMessage: 'No settings match your filters.' }
 );
 
+const SEARCH_DEBOUNCE_OPTIONS = { wait: 300 };
+
 const CATEGORY_ORDER: AdvancedSettingCategory[] = [
   'performance',
   'product_features',
@@ -183,12 +187,16 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
   ({ policy, mode, onChange, 'data-test-subj': dataTestSubj }) => {
     const getTestId = useTestIdGenerator(dataTestSubj);
     const [showAdvancedPolicy, setShowAdvancedPolicy] = useState<boolean>(false);
+    const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedOS, setSelectedOS] = useState<OSFilterValue>('all');
-    const openCategoriesRef = useRef<Set<AdvancedSettingCategory>>(new Set());
-    const [, setAccordionUpdateCounter] = useState(0);
+    const [openCategories, setOpenCategories] = useState<Set<AdvancedSettingCategory>>(
+      () => new Set()
+    );
     const isPlatinumPlus = useLicense().isPlatinumPlus();
+    const { euiTheme } = useEuiTheme();
     const euiBackgroundColorCSS = useEuiBackgroundColorCSS();
+    const debouncedSetSearchQuery = useDebounceFn(setSearchQuery, SEARCH_DEBOUNCE_OPTIONS);
 
     const isEditMode = mode === 'edit';
 
@@ -197,14 +205,24 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
     }, []);
 
     const handleCategoryToggle = useCallback((category: AdvancedSettingCategory) => {
-      const next = openCategoriesRef.current;
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      setAccordionUpdateCounter((c) => c + 1);
+      setOpenCategories((prev) => {
+        const next = new Set(prev);
+        if (next.has(category)) {
+          next.delete(category);
+        } else {
+          next.add(category);
+        }
+        return next;
+      });
     }, []);
+
+    const handleSearchInputChange = useCallback(
+      (value: string) => {
+        setSearchInput(value);
+        debouncedSetSearchQuery.run(value);
+      },
+      [debouncedSetSearchQuery]
+    );
 
     const handleAdvancedSettingUpdate = useCallback<NonNullable<EuiFieldTextProps['onChange']>>(
       (event) => {
@@ -252,7 +270,7 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
         byCategory.get(cat)!.push(entry);
       }
       return byCategory;
-    }, [policy, isPlatinumPlus, selectedOS, searchQuery]);
+    }, [isPlatinumPlus, selectedOS, searchQuery]);
 
     const totalFilteredCount = useMemo(() => {
       let count = 0;
@@ -366,8 +384,8 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
                 <EuiFieldSearch
                   fullWidth
                   placeholder={SEARCH_PLACEHOLDER}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
                   data-test-subj={getTestId('search')}
                   compressed
                 />
@@ -422,7 +440,7 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
                           className="advancedSettingsCategoryAccordion"
                           css={css`
                             &.euiAccordion-isOpen .euiAccordion__triggerWrapper {
-                              border-bottom: 1px solid #d3dae6;
+                              border-bottom: 1px solid ${euiTheme.colors.lightShade};
                             }
                           `}
                           buttonContent={
@@ -442,7 +460,7 @@ export const AdvancedSection = memo<AdvancedSectionProps>(
                           arrowProps={{
                             style: { marginLeft: 16 },
                           }}
-                          forceState={openCategoriesRef.current.has(category) ? 'open' : 'closed'}
+                          forceState={openCategories.has(category) ? 'open' : 'closed'}
                           onToggle={() => handleCategoryToggle(category)}
                         >
                           <div css={euiBackgroundColorCSS.subdued} style={{ padding: 12 }}>

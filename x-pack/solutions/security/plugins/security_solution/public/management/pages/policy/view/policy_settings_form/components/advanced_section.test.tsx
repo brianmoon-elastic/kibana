@@ -17,7 +17,7 @@ import type { AdvancedSectionProps } from './advanced_section';
 import { AdvancedSection } from './advanced_section';
 import userEvent from '@testing-library/user-event';
 import { AdvancedPolicySchema } from '../../../models/advanced_policy_schema';
-import { within } from '@testing-library/react';
+import { waitFor, within } from '@testing-library/react';
 import { set } from '@kbn/safer-lodash-set';
 
 jest.setTimeout(15_000); // Costly tests, hitting 2 seconds execution time locally
@@ -94,15 +94,17 @@ describe('Policy Advanced Settings section', () => {
     const searchInput = renderResult.getByTestId(testSubj.search);
     await userEvent.type(searchInput, 'logging.file');
 
-    const linuxLoggingRow = renderResult.queryByTestId(
-      testSubj.settingRowTestSubjects('linux.advanced.logging.file').container
-    );
-    expect(linuxLoggingRow).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        renderResult.getByTestId(testSubj.settingRowTestSubjects('linux.advanced.logging.file').container)
+      ).toBeInTheDocument();
+    });
 
-    const unrelatedRow = renderResult.queryByTestId(
-      testSubj.settingRowTestSubjects('linux.advanced.agent.connection_delay').container
-    );
-    expect(unrelatedRow).not.toBeInTheDocument();
+    expect(
+      renderResult.queryByTestId(
+        testSubj.settingRowTestSubjects('linux.advanced.agent.connection_delay').container
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('should show empty state when filters match no settings', async () => {
@@ -111,7 +113,9 @@ describe('Policy Advanced Settings section', () => {
     const searchInput = renderResult.getByTestId(testSubj.search);
     await userEvent.type(searchInput, 'nonexistentSettingKey12345');
 
-    expect(renderResult.getByTestId(testSubj.emptyState)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(renderResult.getByTestId(testSubj.emptyState)).toBeInTheDocument();
+    });
     expect(renderResult.getByText('No settings match your filters.')).toBeInTheDocument();
   });
 
