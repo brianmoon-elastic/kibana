@@ -14,6 +14,7 @@ import { appendSearch } from '../../common/components/link_to/helpers';
 import type { ArtifactListPageUrlParams } from '../components/artifact_list_page';
 import { paginationFromUrlParams } from '../hooks/use_url_pagination';
 import type { EndpointIndexUIQueryParams } from '../pages/endpoint_hosts/types';
+import type { FileSystemBrowserQueryParams } from '../pages/endpoint_hosts/file_system_browser/types';
 import type { PolicyDetailsArtifactsPageLocation } from '../pages/policy/types';
 import { AdministrationSubTab } from '../types';
 import {
@@ -21,6 +22,7 @@ import {
   MANAGEMENT_DEFAULT_PAGE_SIZE,
   MANAGEMENT_PAGE_SIZE_OPTIONS,
   MANAGEMENT_ROUTING_BLOCKLIST_PATH,
+  MANAGEMENT_ROUTING_ENDPOINT_FILE_BROWSER_PATH,
   MANAGEMENT_ROUTING_ENDPOINTS_PATH,
   MANAGEMENT_ROUTING_ENDPOINT_EXCEPTIONS_PATH,
   MANAGEMENT_ROUTING_EVENT_FILTERS_PATH,
@@ -119,6 +121,30 @@ export const getEndpointDetailsPath = (
   return `${generatePath(MANAGEMENT_ROUTING_ENDPOINTS_PATH, {
     tabName: AdministrationSubTab.endpoints,
   })}${appendSearch(`${urlQueryParams ? `${urlQueryParams}${urlSearch}` : urlSearch}`)}`;
+};
+
+export const getFileSystemBrowserPath = (props: FileSystemBrowserQueryParams) => {
+  const queryParams: FileSystemBrowserQueryParams = {};
+
+  if (props.selected_endpoint) {
+    queryParams.selected_endpoint = props.selected_endpoint;
+  }
+
+  if (props.path) {
+    queryParams.path = props.path;
+  }
+
+  if (props.search) {
+    queryParams.search = props.search;
+  }
+
+  const urlQueryParams = querystringStringify<FileSystemBrowserQueryParams, typeof queryParams>(
+    queryParams
+  );
+
+  return `${generatePath(MANAGEMENT_ROUTING_ENDPOINT_FILE_BROWSER_PATH, {
+    tabName: AdministrationSubTab.endpoints,
+  })}${appendSearch(urlQueryParams)}`;
 };
 
 export const getPoliciesPath = (search?: string) => {

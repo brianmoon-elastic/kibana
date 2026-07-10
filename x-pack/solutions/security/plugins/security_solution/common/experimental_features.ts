@@ -63,6 +63,11 @@ export const allowedExperimentalValues = Object.freeze({
   responseActionsScriptLibraryManagement: true,
 
   /**
+   * File system browser for endpoint forensics in Endpoint Management
+   */
+  responseActionsFileSystemBrowser: true,
+
+  /**
    * `cancel` response action for Elastic Defend Endpoint
    * Release: 9.5
    */

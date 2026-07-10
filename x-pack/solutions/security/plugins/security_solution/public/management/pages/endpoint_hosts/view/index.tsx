@@ -10,6 +10,7 @@ import styled from 'styled-components';
 import {
   EuiBasicTable,
   type EuiBasicTableColumn,
+  EuiCallOut,
   EuiEmptyPrompt,
   EuiFlexGroup,
   EuiFlexItem,
@@ -71,6 +72,11 @@ import { ManagementEmptyStateWrapper } from '../../../components/management_empt
 import { useUserPrivileges } from '../../../../common/components/user_privileges';
 import { BackToPolicyListButton } from './components/back_to_policy_list_button';
 import { useBulkGetAgentPolicies } from '../../../services/policies/hooks';
+import { useIsExperimentalFeatureEnabled } from '../../../../common/hooks/use_experimental_features';
+import {
+  getMockAgentStatusRecords,
+  getMockPrototypeEndpointList,
+} from '../mock_prototype_endpoints';
 
 const MAX_PAGINATED_ITEM = 9999;
 
@@ -320,6 +326,10 @@ const stateHandleDeployEndpointsClick: AgentPolicyDetailsDeployAgentAction = {
 
 export const EndpointList = () => {
   const history = useHistory();
+  const isFileSystemBrowserPrototype = useIsExperimentalFeatureEnabled(
+    'responseActionsFileSystemBrowser'
+  );
+  const prototypeEndpointList = useMemo(() => getMockPrototypeEndpointList(), []);
   const {
     listData,
     pageIndex,
@@ -353,25 +363,34 @@ export const EndpointList = () => {
   const { state: routeState = {} } = useLocation<PolicyDetailsRouteState>();
   const { getAppUrl } = useAppUrl();
   const dispatch = useDispatch<(a: EndpointAction) => void>();
-  // cap ability to page at 10k records. (max_result_window)
-  const maxPageCount = totalItemCount > MAX_PAGINATED_ITEM ? MAX_PAGINATED_ITEM : totalItemCount;
 
   const hasPolicyData = policyItems && policyItems.length > 0;
-  const hasListData = listData && listData.length > 0;
+  const effectiveListData = isFileSystemBrowserPrototype ? prototypeEndpointList : listData;
+  const effectiveTotalItemCount = isFileSystemBrowserPrototype
+    ? prototypeEndpointList.length
+    : totalItemCount;
+  // cap ability to page at 10k records. (max_result_window)
+  const maxPageCount =
+    effectiveTotalItemCount > MAX_PAGINATED_ITEM ? MAX_PAGINATED_ITEM : effectiveTotalItemCount;
+  const effectiveEndpointsExist = isFileSystemBrowserPrototype ? true : endpointsExist;
+  const effectiveIsInitialized = isFileSystemBrowserPrototype ? true : isInitialized;
+  const effectiveHasListData = isFileSystemBrowserPrototype
+    ? prototypeEndpointList.length > 0
+    : Boolean(listData && listData.length > 0);
 
   const refreshStyle = useMemo(() => {
-    return { display: endpointsExist ? 'flex' : 'none' };
-  }, [endpointsExist]);
+    return { display: effectiveEndpointsExist ? 'flex' : 'none' };
+  }, [effectiveEndpointsExist]);
 
-  const refreshIsPaused = !endpointsExist
+  const refreshIsPaused = !effectiveEndpointsExist
     ? false
     : hasSelectedEndpoint
     ? true
     : !isAutoRefreshEnabled;
 
-  const refreshInterval = !endpointsExist ? DEFAULT_POLL_INTERVAL : autoRefreshInterval;
+  const refreshInterval = !effectiveEndpointsExist ? DEFAULT_POLL_INTERVAL : autoRefreshInterval;
 
-  const shouldShowKQLBar = endpointsExist && !patternsError;
+  const shouldShowKQLBar = effectiveEndpointsExist && !patternsError && !isFileSystemBrowserPrototype;
 
   const paginationSetup = useMemo(() => {
     return {
@@ -476,6 +495,10 @@ export const EndpointList = () => {
     | 'hostsEmptyState'
     | 'endpointTable'
     | 'listError' = useMemo(() => {
+    if (isFileSystemBrowserPrototype) {
+      return 'endpointTable';
+    }
+
     if (!isInitialized) {
       return 'loading';
     } else if (listError) {
@@ -494,6 +517,7 @@ export const EndpointList = () => {
     canReadEndpointList,
     endpointsExist,
     hasPolicyData,
+    isFileSystemBrowserPrototype,
     isInitialized,
     listError,
     policyItemsLoading,
@@ -555,10 +579,14 @@ export const EndpointList = () => {
   }, []);
 
   const { data: agentStatusRecords } = useGetAgentStatus(
-    listData.map((rowItem) => rowItem.metadata.agent.id),
+    effectiveListData.map((rowItem) => rowItem.metadata.agent.id),
     'endpoint',
-    { enabled: hasListData }
+    { enabled: effectiveHasListData && !isFileSystemBrowserPrototype }
   );
+
+  const effectiveAgentStatusRecords: AgentStatusRecords = isFileSystemBrowserPrototype
+    ? getMockAgentStatusRecords(prototypeEndpointList)
+    : agentStatusRecords ?? {};
 
   const columns = useMemo(
     () =>
@@ -568,9 +596,9 @@ export const EndpointList = () => {
         missingPolicies,
         queryParams,
         search,
-        agentStatusRecords: agentStatusRecords ?? {},
+        agentStatusRecords: effectiveAgentStatusRecords,
       }),
-    [agentStatusRecords, backToEndpointList, getAppUrl, missingPolicies, queryParams, search]
+    [effectiveAgentStatusRecords, backToEndpointList, getAppUrl, missingPolicies, queryParams, search]
   );
 
   const sorting = useMemo(
@@ -580,7 +608,7 @@ export const EndpointList = () => {
     [sortDirection, sortField]
   );
 
-  const mutableListData = useMemo(() => [...listData], [listData]);
+  const mutableListData = useMemo(() => [...effectiveListData], [effectiveListData]);
 
   const renderTableOrEmptyState = useMemo(() => {
     switch (stateToDisplay) {
@@ -690,7 +718,7 @@ export const EndpointList = () => {
     handleCreatePolicyClick,
   ]);
 
-  const hideHeader = !(endpointsExist && isInitialized && !listError);
+  const hideHeader = !(effectiveEndpointsExist && effectiveIsInitialized && !listError);
 
   return (
     <AdministrationListPage
@@ -710,8 +738,28 @@ export const EndpointList = () => {
       }
       headerBackComponent={<BackToPolicyListButton backLink={routeState.backLink} />}
     >
+      {isFileSystemBrowserPrototype && (
+        <>
+          <EuiCallOut
+            size="s"
+            title={
+              <FormattedMessage
+                id="xpack.securitySolution.endpoint.list.prototypeCalloutTitle"
+                defaultMessage="File System Browser prototype"
+              />
+            }
+            iconType="beaker"
+          >
+            <FormattedMessage
+              id="xpack.securitySolution.endpoint.list.prototypeCalloutBody"
+              defaultMessage="Showing mock endpoints for design review. Use Browse files in the row actions menu to open the file browser."
+            />
+          </EuiCallOut>
+          <EuiSpacer size="m" />
+        </>
+      )}
       {hasSelectedEndpoint && <EndpointDetailsFlyout />}
-      {isInitialized && !listError && (
+      {effectiveIsInitialized && !listError && (
         <>
           <TransformFailedCallout
             metadataTransformStats={metadataTransformStats}
@@ -741,20 +789,20 @@ export const EndpointList = () => {
           <EuiSpacer size="m" />
         </>
       )}
-      {hasListData && (
+      {effectiveHasListData && (
         <>
           <EuiText color="subdued" size="xs" data-test-subj="endpointListTableTotal">
-            {totalItemCount > MAX_PAGINATED_ITEM + 1 ? (
+            {effectiveTotalItemCount > MAX_PAGINATED_ITEM + 1 ? (
               <FormattedMessage
                 id="xpack.securitySolution.endpoint.list.totalCount.limited"
                 defaultMessage="Showing {limit} of {totalItemCount, plural, one {# endpoint} other {# endpoints}}"
-                values={{ totalItemCount, limit: MAX_PAGINATED_ITEM + 1 }}
+                values={{ totalItemCount: effectiveTotalItemCount, limit: MAX_PAGINATED_ITEM + 1 }}
               />
             ) : (
               <FormattedMessage
                 id="xpack.securitySolution.endpoint.list.totalCount"
                 defaultMessage="Showing {totalItemCount, plural, one {# endpoint} other {# endpoints}}"
-                values={{ totalItemCount }}
+                values={{ totalItemCount: effectiveTotalItemCount }}
               />
             )}
           </EuiText>

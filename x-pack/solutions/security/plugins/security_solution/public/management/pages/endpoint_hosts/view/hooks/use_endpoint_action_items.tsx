@@ -12,7 +12,7 @@ import type { EndpointCapabilities } from '../../../../../../common/endpoint/ser
 import { useUserPrivileges } from '../../../../../common/components/user_privileges';
 import { useWithShowResponder } from '../../../../hooks';
 import { APP_UI_ID } from '../../../../../../common/constants';
-import { getEndpointDetailsPath, getEndpointListPath } from '../../../../common/routing';
+import { getEndpointDetailsPath, getEndpointListPath, getFileSystemBrowserPath } from '../../../../common/routing';
 import type { HostInfo, MaybeImmutable } from '../../../../../../common/endpoint/types';
 import { useEndpointSelector } from './hooks';
 import { uiQueryParams } from '../../store/selectors';
@@ -20,6 +20,7 @@ import { useAppUrl } from '../../../../../common/lib/kibana/hooks';
 import type { ContextMenuItemNavByRouterProps } from '../../../../components/context_menu_with_router_support/context_menu_item_nav_by_router';
 import { isEndpointHostIsolated } from '../../../../../common/utils/validators';
 import { getHostPlatform } from '../../../../../common/lib/endpoint/utils/get_host_platform';
+import { useIsExperimentalFeatureEnabled } from '../../../../../common/hooks/use_experimental_features';
 
 interface Options {
   isEndpointList: boolean;
@@ -37,6 +38,9 @@ export const useEndpointActionItems = (
   const { getAppUrl } = useAppUrl();
   const allCurrentUrlParams = useEndpointSelector(uiQueryParams);
   const showEndpointResponseActionsConsole = useWithShowResponder();
+  const isFileSystemBrowserEnabled = useIsExperimentalFeatureEnabled(
+    'responseActionsFileSystemBrowser'
+  );
   const {
     canAccessResponseConsole,
     canIsolateHost,
@@ -72,6 +76,9 @@ export const useEndpointActionItems = (
     const endpointUnIsolatePath = getEndpointDetailsPath({
       name: 'endpointUnIsolate',
       ...currentUrlParams,
+      selected_endpoint: endpointId,
+    });
+    const fileSystemBrowserPath = getFileSystemBrowserPath({
       selected_endpoint: endpointId,
     });
 
@@ -143,11 +150,31 @@ export const useEndpointActionItems = (
             },
           ]
         : []),
+      ...(isFileSystemBrowserEnabled && canAccessResponseConsole
+        ? [
+            {
+              'data-test-subj': 'browseFilesLink',
+              icon: 'folderOpen',
+              key: 'browseFilesLink',
+              navigateAppId: APP_UI_ID,
+              navigateOptions: {
+                path: fileSystemBrowserPath,
+              },
+              href: getAppUrl({ path: fileSystemBrowserPath }),
+              children: (
+                <FormattedMessage
+                  id="xpack.securitySolution.endpoint.actions.browseFiles"
+                  defaultMessage="Browse files"
+                />
+              ),
+            },
+          ]
+        : []),
       ...(options?.isEndpointList && canAccessEndpointActionsLogManagement
         ? [
             {
               'data-test-subj': 'actionsLink',
-              icon: 'logoSecurity',
+              icon: 'clock',
               key: 'actionsLogLink',
               navigateAppId: APP_UI_ID,
               navigateOptions: { path: endpointActionsPath },
@@ -163,7 +190,7 @@ export const useEndpointActionItems = (
         : []),
       {
         'data-test-subj': 'hostLink',
-        icon: 'logoSecurity',
+        icon: 'storage',
         key: 'hostDetailsLink',
         navigateAppId: APP_UI_ID,
         navigateOptions: { path: `/hosts/${endpointHostName}` },
@@ -175,6 +202,34 @@ export const useEndpointActionItems = (
           />
         ),
       },
+      ...(canReadFleetAgents
+        ? [
+            {
+              icon: 'info',
+              key: 'agentDetailsLink',
+              'data-test-subj': 'agentDetailsLink',
+              navigateAppId: 'fleet',
+              navigateOptions: {
+                path: `${
+                  pagePathGetters.agent_details({
+                    agentId: fleetAgentId,
+                  })[1]
+                }`,
+              },
+              href: `${getAppUrl({ appId: 'fleet' })}${
+                pagePathGetters.agent_details({
+                  agentId: fleetAgentId,
+                })[1]
+              }`,
+              children: (
+                <FormattedMessage
+                  id="xpack.securitySolution.endpoint.actions.agentDetails"
+                  defaultMessage="View agent details"
+                />
+              ),
+            },
+          ]
+        : []),
       ...(canReadFleetAgentPolicies
         ? [
             {
@@ -208,38 +263,10 @@ export const useEndpointActionItems = (
             },
           ]
         : []),
-      ...(canReadFleetAgents
-        ? [
-            {
-              icon: 'gear',
-              key: 'agentDetailsLink',
-              'data-test-subj': 'agentDetailsLink',
-              navigateAppId: 'fleet',
-              navigateOptions: {
-                path: `${
-                  pagePathGetters.agent_details({
-                    agentId: fleetAgentId,
-                  })[1]
-                }`,
-              },
-              href: `${getAppUrl({ appId: 'fleet' })}${
-                pagePathGetters.agent_details({
-                  agentId: fleetAgentId,
-                })[1]
-              }`,
-              children: (
-                <FormattedMessage
-                  id="xpack.securitySolution.endpoint.actions.agentDetails"
-                  defaultMessage="View agent details"
-                />
-              ),
-            },
-          ]
-        : []),
       ...(canWriteFleetAgents
         ? [
             {
-              icon: 'gear',
+              icon: 'refresh',
               key: 'agentPolicyReassignLink',
               'data-test-subj': 'agentPolicyReassignLink',
               navigateAppId: 'fleet',
@@ -284,5 +311,6 @@ export const useEndpointActionItems = (
     canReadFleetAgentPolicies,
     canReadFleetAgents,
     canWriteFleetAgents,
+    isFileSystemBrowserEnabled,
   ]);
 };
