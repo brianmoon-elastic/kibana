@@ -2,7 +2,7 @@ tags:
   - is-webpack-built
 tasks:
   build-webpack:
-    command: yarn
+    command: pnpm
     args:
       - build
     # Bundled node_modules versions feed the hash; see src/dev/shared_deps_fingerprint
@@ -14,9 +14,9 @@ tasks:
       - '@group(src)'
       - package.json
       - webpack.config.js
-      - /src/platform/packages/shared/kbn-esql-language/**/*.{js,ts,tsx}
-      - /src/platform/packages/shared/kbn-esql-types/**/*.{js,ts,tsx}
-      - /src/platform/packages/shared/kbn-esql-language/**/*.{js,ts,tsx}
+      - /src/platform/packages/shared/esql/kbn-esql-language/**/*.{js,ts,tsx}
+      - /src/platform/packages/shared/esql/kbn-esql-types/**/*.{js,ts,tsx}
+      - /src/platform/packages/shared/esql/kbn-esql-language/**/*.{js,ts,tsx}
       - /src/platform/packages/shared/kbn-i18n/**/*.{js,ts,tsx}
       - /src/platform/packages/shared/kbn-repo-info/**/*.{js,ts,tsx}
     outputs:
@@ -25,7 +25,7 @@ tasks:
     type: run
     options:
       persistent: true
-    command: yarn
+    command: pnpm
     args:
       - build
       - '--watch'
