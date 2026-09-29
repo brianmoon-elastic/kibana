@@ -39,6 +39,7 @@ import {
   TREE_ROW_GAP_SIZE,
   TREE_ROW_PADDING_X_SIZE,
 } from './step_execution_tree_row';
+import { type WaitingStepAction } from './waiting_step_action_panel';
 import {
   buildOverviewStepExecutionFromContext,
   buildTriggerStepExecutionFromContext,
@@ -324,6 +325,7 @@ function convertTreeToOpenNodes(
       onDiagnoseStep: (stepExecution: WorkflowStepExecutionDto) => void;
       isDiagnoseHandoffInFlight?: boolean;
     };
+    waitingAction?: WaitingStepAction;
   }
 ): OpenTreeNode[] {
   return treeItems.flatMap((item) => {
@@ -711,10 +713,10 @@ function convertTreeToOpenNodes(
       selectedId != null &&
       (selectedId === stepExecution.id || selectedStepExecution?.stepId === stepExecution.stepId);
     const arrivalPulse =
-      carriesErrorRegion &&
       stepExecution != null &&
       options?.errorArrivalPulseStepId != null &&
-      options.errorArrivalPulseStepId === stepExecution.id;
+      options.errorArrivalPulseStepId === stepExecution.id &&
+      (carriesErrorRegion || status === ExecutionStatus.WAITING_FOR_INPUT);
 
     const isInFlightAttempt =
       status === ExecutionStatus.RUNNING ||
@@ -808,6 +810,10 @@ function convertTreeToOpenNodes(
         errorPanelMessageOverride: retryLeadIn,
         showDangerSelectionBorder,
         arrivalPulse,
+        waitingAction:
+          options?.waitingAction && stepExecution?.id === options.waitingAction.stepExecutionId
+            ? options.waitingAction
+            : undefined,
       },
     };
 
@@ -1141,6 +1147,8 @@ export interface WorkflowStepExecutionTreeProps {
   workflowName?: string;
   /** Close step subflyout(s) before opening Agent Builder diagnose chat. */
   onBeforeDiagnose?: () => void;
+  /** Inline Provide action panel for the active waitForInput step. */
+  waitingAction?: WaitingStepAction;
 }
 
 export const WorkflowStepExecutionTree = ({
@@ -1157,6 +1165,7 @@ export const WorkflowStepExecutionTree = ({
   statusPlacement = 'right',
   workflowName,
   onBeforeDiagnose,
+  waitingAction,
 }: WorkflowStepExecutionTreeProps) => {
   const styles = useMemoCss(componentStyles);
   const [expandedGapIds, setExpandedGapIds] = useState<Set<string>>(new Set());
@@ -1319,6 +1328,7 @@ export const WorkflowStepExecutionTree = ({
         isExecutionComplete: isTerminalStatus(execution.status),
         definition,
         diagnose: diagnoseOptions,
+        waitingAction,
       }
     );
   }, [
@@ -1336,6 +1346,7 @@ export const WorkflowStepExecutionTree = ({
     onToggleGap,
     selectedId,
     stepExecutionsUnavailable,
+    waitingAction,
   ]);
 
   const defaultExpandedIds = useMemo(() => {
